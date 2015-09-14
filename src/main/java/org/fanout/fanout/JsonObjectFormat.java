@@ -9,20 +9,29 @@ package org.fanout.fanout;
 
 import java.pubcontrol.Format;
 
-// The JSON object format used for publishing messages to Fanout.io.
+/**
+ * The JSON object format used for publishing messages to Fanout.io.
+ */
 public class JsonObjectFormat implements Format {
     private String value;
 
-    public HttpResponseFormat(String value) {
+    /**
+     * Initialize with a response value.
+     */
+    public JsonObjectFormat(String value) {
         this.value = value;
     }
 
-    // The name of the format.
+    /**
+     * The name of the format.
+     */
     public String name() {
         return "json-object";
     }
 
-    // The method used to export the format data.
+    /**
+     * The method used to export the format data.
+     */
     public Object export() {
         return this.value;
     }

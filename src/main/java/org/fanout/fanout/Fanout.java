@@ -7,8 +7,9 @@
 
 package org.fanout.fanout;
 
-import java.util.Map;
+import java.util.*;
 import javax.xml.bind.DatatypeConverter;
+import org.fanout.pubcontrol.*;
 
 /**
  * The Fanout class is used for publishing messages to Fanout.io.
@@ -36,15 +37,15 @@ public class Fanout {
         String keyEnvValue = null;
         Map<String, String> env = System.getenv();
         for (String envName : env.keySet()) {
-            if (envName == "FANOUT_REALM")
+            if (envName.equals("FANOUT_REALM"))
                 realmEnvValue = env.get(envName);
-            else if (envName == "FANOUT_KEY")
+            else if (envName.equals("FANOUT_KEY"))
                 keyEnvValue = env.get(envName);
         }
 
-        if (realm != null)
+        if (realm == null)
             realm = realmEnvValue;
-        if (key != null)
+        if (key == null)
             key = keyEnvValue;
 
         this.realm = realm;
@@ -57,11 +58,12 @@ public class Fanout {
      * Optionally provide an ID and previous
      * ID to send along with the message.
      */
-    public void publish(List<String> channels, String id, String prevId)
+    public void publish(List<String> channels, Object data, String id, String prevId)
             throws PublishFailedException {
         PubControlClient client = this.getPubControl();
-        client.publish(channels, new Item(new JsonObjectFormat(data),
-                id, prev_id));
+        List<Format> formats = new ArrayList<Format>();
+        formats.add(new JsonObjectFormat(data));
+        client.publish(channels, new Item(formats, id, prevId));
     }
 
     /**
@@ -71,11 +73,13 @@ public class Fanout {
      * called after publishing is complete and passed the result and error message
      * if an error was encountered.
      */
-    public void publishAsync(List<String> channels, String id, String prevId,
-            PublishCallback callback) throws PublishFailedException {
+    public void publishAsync(List<String> channels, Object data, String id, String prevId,
+            PublishCallback callback) {
         PubControlClient client = this.getPubControl();
-        client.publishAsync(channels, new Item(new JsonObjectFormat(data),
-                id, prev_id, callback));
+        List<Format> formats = new ArrayList<Format>();
+        formats.add(new JsonObjectFormat(data));
+        client.publishAsync(channels, new Item(formats,
+                id, prevId), callback);
     }
 
     /**
@@ -83,16 +87,23 @@ public class Fanout {
      * PubControl instance is saved as a thread variable and if an instance
      * is not available when this method is called then one will be created.
      */
-    private PubControl getPubControl() {
+    private PubControlClient getPubControl() {
         if (this.threadLocal.get() == null) {
-            scheme = "http";
+            String scheme = "http";
             if (this.ssl)
                 scheme = "https";
-            PubControlClient client = new PubControlClient(scheme +
+            final PubControlClient client = new PubControlClient(scheme +
                     "://api.fanout.io/realm/" + this.realm);
             Map<String, Object> claims = new HashMap<String, Object>();
+            claims.put("iss", this.realm);
             client.setAuthJwt(claims, DatatypeConverter.parseBase64Binary(
                     this.key));
+            Runtime.getRuntime().addShutdownHook(new Thread() {
+                @Override
+                public void run() {
+                    client.finish();
+                }
+            });
             this.threadLocal.set(client);
         }
         return this.threadLocal.get();

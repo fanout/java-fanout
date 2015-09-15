@@ -7,18 +7,18 @@
 
 package org.fanout.fanout;
 
-import java.pubcontrol.Format;
+import org.fanout.pubcontrol.Format;
 
 /**
  * The JSON object format used for publishing messages to Fanout.io.
  */
 public class JsonObjectFormat implements Format {
-    private String value;
+    private Object value;
 
     /**
      * Initialize with a response value.
      */
-    public JsonObjectFormat(String value) {
+    public JsonObjectFormat(Object value) {
         this.value = value;
     }
 

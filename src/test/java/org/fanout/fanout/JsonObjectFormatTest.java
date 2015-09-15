@@ -8,6 +8,6 @@ public class JsonObjectFormatTest {
     public void testJsonObjectFormat() {
         JsonObjectFormat format = new JsonObjectFormat("value");
         assertEquals(format.name(), "json-object");
-        assertEquals(format.export(), "value");
+        assertEquals((String)format.export(), "value");
     }
 }

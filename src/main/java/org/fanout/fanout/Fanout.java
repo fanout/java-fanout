@@ -20,11 +20,7 @@ import org.fanout.pubcontrol.*;
  * automatically be called when the calling program exits.
  */
 public class Fanout {
-    private static ThreadLocal<PubControlClient> threadLocal =
-            new ThreadLocal<PubControlClient>();
-    private String realm;
-    private String key;
-    private boolean ssl;
+    private PubControlClient client;
 
     /**
      * Initialize and have realm and key taken from environmental variables.
@@ -67,9 +63,24 @@ public class Fanout {
         if (key == null)
             key = keyEnvValue;
 
-        this.realm = realm;
-        this.key = key;
-        this.ssl = ssl;
+        String scheme = "http";
+        if (ssl)
+            scheme = "https";
+        final PubControlClient client = new PubControlClient(scheme +
+                "://api.fanout.io/realm/" + realm);
+
+        Map<String, Object> claims = new HashMap<String, Object>();
+        claims.put("iss", realm);
+        client.setAuthJwt(claims, DatatypeConverter.parseBase64Binary(key));
+
+        Runtime.getRuntime().addShutdownHook(new Thread() {
+            @Override
+            public void run() {
+                client.finish();
+            }
+        });
+
+        this.client = client;
     }
 
     /**
@@ -87,10 +98,9 @@ public class Fanout {
      */
     public void publish(List<String> channels, Object data, String id, String prevId)
             throws PublishFailedException {
-        PubControlClient client = this.getPubControl();
         List<Format> formats = new ArrayList<Format>();
         formats.add(new JsonObjectFormat(data));
-        client.publish(channels, new Item(formats, id, prevId));
+        this.client.publish(channels, new Item(formats, id, prevId));
     }
 
     /**
@@ -119,37 +129,9 @@ public class Fanout {
      */
     public void publishAsync(List<String> channels, Object data, String id, String prevId,
             PublishCallback callback) {
-        PubControlClient client = this.getPubControl();
         List<Format> formats = new ArrayList<Format>();
         formats.add(new JsonObjectFormat(data));
-        client.publishAsync(channels, new Item(formats,
+        this.client.publishAsync(channels, new Item(formats,
                 id, prevId), callback);
-    }
-
-    /**
-     * An internal method used for retrieving the PubControl instance. The
-     * PubControl instance is saved as a thread variable and if an instance
-     * is not available when this method is called then one will be created.
-     */
-    private PubControlClient getPubControl() {
-        if (this.threadLocal.get() == null) {
-            String scheme = "http";
-            if (this.ssl)
-                scheme = "https";
-            final PubControlClient client = new PubControlClient(scheme +
-                    "://api.fanout.io/realm/" + this.realm);
-            Map<String, Object> claims = new HashMap<String, Object>();
-            claims.put("iss", this.realm);
-            client.setAuthJwt(claims, DatatypeConverter.parseBase64Binary(
-                    this.key));
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                @Override
-                public void run() {
-                    client.finish();
-                }
-            });
-            this.threadLocal.set(client);
-        }
-        return this.threadLocal.get();
     }
 }

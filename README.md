@@ -58,25 +58,27 @@ public class FanoutExample {
 
     public static void main(String[] args) {
 
-        // Passing null for the realm and key arguments causes Fanout to use
+        // Omitting realm and key arguments causes Fanout to use
         // the FANOUT_REALM and FANOUT_KEY environmental variables.
-        Fanout fanout = new Fanout(null, null, true);
+        Fanout fanout = new Fanout();
 
         // Alternatively specify the realm and/or key.
-        fanout = new Fanout("<realm-id>", "<realm-key>", true);
+        fanout = new Fanout("<realm-id>", "<realm-key>");
 
-        // Publish across all configured endpoints:
+        // Create a list of channels.
         List<String> channels = new ArrayList<String>();
         channels.add("<channel>");
 
         try {
-            fanout.publish(channels, "Test publish!", null, null);
+            // Sync publish to fanout.io.
+            fanout.publish(channels, "Test publish!");
         } catch (PublishFailedException exception) {
             System.out.println(exception.getMessage());
             exception.printStackTrace();
         }
-        fanout.publishAsync(channels,
-                "Test async publish!", null, null, new Callback());
+
+        // Async publish to fanout.io.
+        fanout.publishAsync(channels, "Test async publish!", new Callback());
     }
 }
 ```

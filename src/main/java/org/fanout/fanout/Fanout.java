@@ -27,6 +27,25 @@ public class Fanout {
     private boolean ssl;
 
     /**
+     * Initialize and have realm and key taken from environmental variables.
+     * Note that the 'FANOUT_REALM' and 'FANOUT_KEY' environmental variables
+     * will be used.
+     */
+    public Fanout() {
+        this(null, null, true);
+    }
+
+    /**
+     * Initialize with a specified realm and key.
+     * Note that if the realm and key
+     * are omitted then the initialize method will use the 'FANOUT_REALM'
+     * and 'FANOUT_KEY' environmental variables.
+     */
+    public Fanout(String realm, String key) {
+        this(realm, key, true);
+    }
+
+    /**
      * Initialize with a specified realm, key, and an SSL switch.
      * Note that if the realm and key
      * are omitted then the initialize method will use the 'FANOUT_REALM'
@@ -55,6 +74,14 @@ public class Fanout {
 
     /**
      * Synchronously publish data to the specified channels.
+     */
+    public void publish(List<String> channels, Object data)
+            throws PublishFailedException {
+        this.publish(channels, data, null, null);
+    }
+
+    /**
+     * Synchronously publish data to the specified channels.
      * Optionally provide an ID and previous
      * ID to send along with the message.
      */
@@ -64,6 +91,23 @@ public class Fanout {
         List<Format> formats = new ArrayList<Format>();
         formats.add(new JsonObjectFormat(data));
         client.publish(channels, new Item(formats, id, prevId));
+    }
+
+    /**
+     * Asynchronously publish data to the specified channel.
+     */
+    public void publishAsync(List<String> channels, Object data) {
+        this.publishAsync(channels, data, null, null, null);
+    }
+
+    /**
+     * Asynchronously publish data to the specified channel.
+     * Optionally provide a callback method that will be
+     * called after publishing is complete and passed the result and error message
+     * if an error was encountered.
+     */
+    public void publishAsync(List<String> channels, Object data, PublishCallback callback) {
+        this.publishAsync(channels, data, null, null, callback);
     }
 
     /**
